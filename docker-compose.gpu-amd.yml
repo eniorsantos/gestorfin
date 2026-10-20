@@ -1,0 +1,12 @@
+# GPUs AMD com ROCm (Linux). Uso:
+# docker compose -f docker-compose.yml -f docker-compose.gpu-amd.yml up -d
+services:
+  ollama:
+    image: ollama/ollama:rocm
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    group_add:
+      - video
+  model-puller:
+    image: ollama/ollama:rocm

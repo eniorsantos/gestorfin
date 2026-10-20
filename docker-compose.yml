@@ -1,0 +1,89 @@
+name: finllm
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-finllm}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-finllm}
+      POSTGRES_DB: ${POSTGRES_DB:-finllm}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    shm_size: 256mb
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-finllm} -d ${POSTGRES_DB:-finllm}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  ollama:
+    image: ${OLLAMA_IMAGE:-ollama/ollama:latest}
+    restart: unless-stopped
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama:/root/.ollama
+    environment:
+      OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-30m}
+      OLLAMA_NUM_PARALLEL: ${OLLAMA_NUM_PARALLEL:-1}
+      OLLAMA_MAX_LOADED_MODELS: ${OLLAMA_MAX_LOADED_MODELS:-1}
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 20s
+    # GPU: use um dos overrides (docker-compose.gpu-nvidia.yml / docker-compose.gpu-amd.yml)
+
+  # Baixa os modelos listados em OLLAMA_MODELS e encerra.
+  model-puller:
+    image: ${OLLAMA_IMAGE:-ollama/ollama:latest}
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: "no"
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_MODELS: ${OLLAMA_MODELS:-bge-m3 qwen3:8b}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        for m in $${OLLAMA_MODELS}; do
+          echo ">> ollama pull $$m"
+          ollama pull "$$m" || exit 1
+        done
+        echo ">> modelos prontos"
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-finllm}:${POSTGRES_PASSWORD:-finllm}@postgres:5432/${POSTGRES_DB:-finllm}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./:/app
+    command: ["sleep", "infinity"]
+
+  adminer:
+    image: adminer:latest
+    profiles: ["tools"]
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+
+volumes:
+  pgdata:
+  ollama:

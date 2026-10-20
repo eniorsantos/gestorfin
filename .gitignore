@@ -1,0 +1,12 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+data/*
+!data/.gitkeep
+benchmark/results/*
+!benchmark/results/.gitkeep
+benchmark/datasets/*.jsonl
+*.egg-info/
+.pytest_cache/
+.ruff_cache/

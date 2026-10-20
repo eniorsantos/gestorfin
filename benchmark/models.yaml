@@ -1,0 +1,25 @@
+# Modelos candidatos. Ajuste ao seu hardware: `min_mem_gb` é uma estimativa (VRAM ou memória unificada, Q4)
+# usada só pelo filtro --max-mem-gb. Confirme nomes/tags atuais em https://ollama.com/library
+# think: false  => desliga o raciocínio (melhor p/ JSON schema e latência). Use true p/ comparar modelos "thinking".
+models:
+  - name: qwen3:8b
+    min_mem_gb: 8
+    think: false
+  - name: qwen3:14b
+    min_mem_gb: 12
+    think: false
+  - name: llama3.1:8b
+    min_mem_gb: 8
+    think: false
+  - name: gemma3:12b
+    min_mem_gb: 12
+    think: false
+  - name: mistral-nemo:12b
+    min_mem_gb: 12
+    think: false
+  - name: qwen3:32b
+    min_mem_gb: 24
+    think: false
+  - name: gpt-oss:20b
+    min_mem_gb: 16
+    think: true     # modelo de raciocínio: não aceita desligar o thinking
